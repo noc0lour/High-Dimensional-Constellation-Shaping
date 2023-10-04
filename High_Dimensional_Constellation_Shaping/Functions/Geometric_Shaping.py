@@ -1,6 +1,7 @@
 # Importing Packages and defining variables
 import numpy as np
-import cupy as cp
+# import cupy as cp
+import torch as cp
 import torch as tr
 import scipy.io as sio
 import time
@@ -283,13 +284,14 @@ def Constellation_Initialization(M,channel_uses,Initial_Constellation, Device):
 def save_GMI(Constellations, EsNo_dB, idx_train, epochs, learning_rate, Initial_Constellation, start_time):
     M = np.size(Constellations,0)
     channel_uses = np.size(Constellations,1)
-    np.save('./Data/GMI/' + str(channel_uses) + 'D/' + str(M) + '/GMI_' + str(channel_uses) + 'D_' + str(M) + '_' + str(EsNo_dB) + 'dB_'+ str(learning_rate)+'lr' + Initial_Constellation + str(round(start_time)), [
-      Constellations,
+    data = np.array([
+      Constellations.tolist(),
       EsNo_dB,
-      idx_train,
+      idx_train.tolist(),
       epochs,
       learning_rate,
-      time.time()-start_time], allow_pickle=True)
+        time.time()-start_time], dtype=object)
+    np.save('./Data/GMI/' + str(channel_uses) + 'D/' + str(M) + '/GMI_' + str(channel_uses) + 'D_' + str(M) + '_' + str(EsNo_dB) + 'dB_'+ str(learning_rate)+'lr' + Initial_Constellation + str(round(start_time)), data, allow_pickle=True)
 
 
 #A function for saving the variables during the optimisation for MI optimisation
@@ -446,9 +448,9 @@ def GMI_RQ(X_tilde,idx, EsNo_dB, encoder, Quad_base, Device, bpg):
     for i in range(M):
         idx2[idx[i]] = i 
     X = X[idx2,:]
-    Dmat = tr.zeros(M,M,channel_uses,requires_grad=True).to(Device)
+    Dmat = tr.zeros(M,M,channel_uses).to(Device)#,requires_grad=True).to(Device)
     for i in range(channel_uses):
-        Dmat[:,:,i] = X[:,i].unsqueeze(1) -(X[:,i].unsqueeze(1)).t() #Calculate the distances between constellation points
+        Dmat[:,:,i] = X[:,i].unsqueeze(1) -cp.transpose((X[:,i].unsqueeze(1)),0,1) #Calculate the distances between constellation points
     
     labeling = de2bi(np.arange(M), m)
     
